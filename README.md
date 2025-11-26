@@ -115,12 +115,13 @@ Para instalá-las:
 - O arquivo [`src/utils/config.py`](src/utils/config.py) já está configurado para se conectar automaticamente ao banco de dados **MySQL Aiven**, não sendo necessária nenhuma modificação.
 - O script [`run.py`](src/run.py) permite **executar todo o processo automaticamente**, desde a criação do banco até a inicialização do sistema.
 - O sistema foi desenvolvido em **Python 3.10+** e testado em ambiente **Linux Ubuntu 22.04**.
+- lhe enviei um email explicando minha situação, peço q dê uma conferida por favor.
 
 ---
 
 
 ## Desenvolvido por
-- **Lucas Pires**  
+- **Lucas Pires de Alencar**  
 
 ### Disciplina
 **Banco de Dados – 2025/2**  
