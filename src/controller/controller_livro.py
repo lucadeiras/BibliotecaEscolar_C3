@@ -34,9 +34,9 @@ class ControllerLivro:
             )
             cursor.execute(sql, valores)
             conn.commit()
-            print("✅ Livro inserido com sucesso!")
+            print(" Livro inserido com sucesso!")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao inserir livro: {err}")
+            print(f" Erro ao inserir livro: {err}")
             if conn:
                 conn.rollback()
         finally:
@@ -53,7 +53,7 @@ class ControllerLivro:
             id_livro = input("Informe o ID do livro que deseja atualizar: ")
 
             if not self.existe(id_livro):
-                print("❌ Livro não encontrado!")
+                print(" Livro não encontrado!")
                 return
 
             conn = self.mysql.connect()
@@ -104,10 +104,10 @@ class ControllerLivro:
 
             cursor.execute(sql, valores)
             conn.commit()
-            print("\n🟡 Livro atualizado com sucesso!")
+            print("\n Livro atualizado com sucesso!")
 
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao atualizar livro: {err}")
+            print(f" Erro ao atualizar livro: {err}")
             if conn:
                 conn.rollback()
         finally:
@@ -122,7 +122,7 @@ class ControllerLivro:
         cursor = None
         try:
             if not self.existe(id_livro):
-                print("❌ Livro não encontrado!")
+                print(" Livro não encontrado!")
                 return
 
             conn = self.mysql.connect()
@@ -133,19 +133,19 @@ class ControllerLivro:
             emprestimos = cursor.fetchone()[0]
 
             if emprestimos > 0:
-                print(f"⚠️ O livro com ID {id_livro} possui {emprestimos} empréstimo(s) registrado(s).")
-                print("❌ Exclusão não permitida para manter o histórico de empréstimos.")
+                print(f" O livro com ID {id_livro} possui {emprestimos} empréstimo(s) registrado(s).")
+                print(" Exclusão não permitida para manter o histórico de empréstimos.")
                 return
 
             cursor.execute("DELETE FROM livro WHERE id_livro = %s", (id_livro,))
             conn.commit()
 
             if cursor.rowcount > 0:
-                print("🔴 Livro deletado com sucesso!")
+                print(" Livro deletado com sucesso!")
             else:
-                print("⚠️ Nenhum livro encontrado com esse ID.")
+                print(" Nenhum livro encontrado com esse ID.")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao deletar livro: {err}")
+            print(f" Erro ao deletar livro: {err}")
             if conn:
                 conn.rollback()
         finally:
@@ -166,10 +166,10 @@ class ControllerLivro:
             if result:
                 print("📘 Livro encontrado!")
                 return Livro(*result)
-            print("⚠️ Nenhum livro encontrado com esse ID.")
+            print(" Nenhum livro encontrado com esse ID.")
             return None
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao buscar livro: {err}")
+            print(f" Erro ao buscar livro: {err}")
             return None
         finally:
             if cursor:
@@ -189,9 +189,9 @@ class ControllerLivro:
                 (int(disponivel), id_livro)
             )
             conn.commit()
-            print(f"📚 Disponibilidade do livro {id_livro} atualizada para {bool(disponivel)}.")
+            print(f" Disponibilidade do livro {id_livro} atualizada para {bool(disponivel)}.")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao atualizar disponibilidade do livro: {err}")
+            print(f" Erro ao atualizar disponibilidade do livro: {err}")
             if conn:
                 conn.rollback()
         finally:
@@ -211,7 +211,7 @@ class ControllerLivro:
             qtd = cursor.fetchone()[0]
             return qtd > 0
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao verificar existência do livro: {err}")
+            print(f" Erro ao verificar existência do livro: {err}")
             return False
         finally:
             if cursor:
