@@ -18,7 +18,7 @@ class ControllerAluno:
             qtd = cursor.fetchone()[0]
             return qtd > 0
         except Exception as e:
-            print(f"❌ Erro ao verificar existência do aluno: {e}")
+            print(f" Erro ao verificar existência do aluno: {e}")
             return False
         finally:
             if cursor:
@@ -37,7 +37,7 @@ class ControllerAluno:
         cursor = None
         try:
             if "Matricula" not in aluno or "Nome" not in aluno:
-                print("⚠️ Dados incompletos do aluno. Matricula e Nome são obrigatórios.")
+                print(" Dados incompletos do aluno. Matricula e Nome são obrigatórios.")
                 return
 
             conn = self.mysql.connect()
@@ -45,7 +45,7 @@ class ControllerAluno:
 
             cursor.execute("SELECT COUNT(1) FROM aluno WHERE Matricula = %s", (aluno["Matricula"],))
             if cursor.fetchone()[0] > 0:
-                print(f"⚠️ Já existe um aluno com a matrícula {aluno['Matricula']}.")
+                print(f" Já existe um aluno com a matrícula {aluno['Matricula']}.")
                 return
 
             sql = """
@@ -65,9 +65,9 @@ class ControllerAluno:
             )
             cursor.execute(sql, valores)
             conn.commit()
-            print("✅ Aluno inserido com sucesso!")
+            print(" Aluno inserido com sucesso!")
         except Exception as e:
-            print(f"❌ Erro ao inserir aluno: {e}")
+            print(f" Erro ao inserir aluno: {e}")
         finally:
             if cursor:
                 cursor.close()
@@ -86,7 +86,7 @@ class ControllerAluno:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(1) FROM aluno WHERE Matricula = %s", (matricula,))
             if cursor.fetchone()[0] == 0:
-                print("⚠️ Aluno não encontrado.")
+                print(" Aluno não encontrado.")
                 return
 
             novo_email = input("Novo email (enter para manter): ").strip()
@@ -113,9 +113,9 @@ class ControllerAluno:
             valores.append(matricula)
             cursor.execute(sql, tuple(valores))
             conn.commit()
-            print("✅ Dados do aluno atualizados com sucesso!")
+            print(" Dados do aluno atualizados com sucesso!")
         except Exception as e:
-            print(f"❌ Erro ao atualizar aluno: {e}")
+            print(f" Erro ao atualizar aluno: {e}")
         finally:
             if cursor:
                 cursor.close()
@@ -133,21 +133,21 @@ class ControllerAluno:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(1) FROM aluno WHERE Matricula = %s", (matricula,))
             if cursor.fetchone()[0] == 0:
-                print("⚠️ Aluno não encontrado.")
+                print(" Aluno não encontrado.")
                 return
 
             confirm = input(f"Confirma exclusão do aluno {matricula}? [s/N]: ").strip().lower()
             if confirm in ("s", "sim", "y", "yes"):
                 cursor.execute("DELETE FROM aluno WHERE Matricula = %s", (matricula,))
                 conn.commit()
-                print("✅ Aluno removido com sucesso!")
+                print(" Aluno removido com sucesso!")
             else:
                 print("Exclusão cancelada.")
                 return
 
         
         except Exception as e:
-            print(f"❌ Erro ao remover aluno: {e}")
+            print(f" Erro ao remover aluno: {e}")
         finally:
             if cursor:
                 cursor.close()
