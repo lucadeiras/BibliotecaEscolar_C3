@@ -1,194 +1,110 @@
-# src/controller/controller_emprestimo.py
-import mysql.connector
-from src.model.emprestimo import Emprestimo
-from src.model.aluno import Aluno
-from src.model.livro import Livro
-from src.conexion.mySQL_queries import mySQL_queries
+from src.db.connection import get_db
+from datetime import datetime
 
+def listar(db):
+    coll = db['emprestimos']
+    docs = list(coll.find({}))
+    if not docs:
+        print('Nenhum empréstimo cadastrado.')
+        return []
+    print('\n--- Lista de empréstimos ---')
+    for i, d in enumerate(docs, start=1):
+        print(f"{i}) _id={d.get('_id')} | aluno_id={d.get('aluno_id')} livro_id={d.get('livro_id')} data_inicio={d.get('data_inicio')} devolucao={d.get('data_devolucao')}")
+    return docs
 
-class ControllerEmprestimo:
-    def __init__(self):
-        self.mysql = mySQL_queries()
-        
-
-    def registrar_emprestimo(self, emprestimo: Emprestimo):
-        """Registra um novo empréstimo no banco de dados."""
-        conn = None
-        cursor = None
+def inserir(db):
+    print('\n--- Inserir empréstimo ---')
+    # escolha aluno
+    from src.controllers.aluno_controller import listar as listar_alunos
+    alunos = listar_alunos(db)
+    if not alunos:
+        print('Cadastre alunos antes.')
+        return
+    a = input('Escolha o número do aluno: ').strip()
+    try:
+        aluno = alunos[int(a)-1]
+    except:
+        print('Escolha inválida.')
+        return
+    # escolha livro
+    from src.controllers.livro_controller import listar as listar_livros
+    livros = listar_livros(db)
+    if not livros:
+        print('Cadastre livros antes.')
+        return
+    l = input('Escolha o número do livro: ').strip()
+    try:
+        livro = livros[int(l)-1]
+    except:
+        print('Escolha inválida.')
+        return
+    data_inicio = input('Data de início (YYYY-mm-dd) [hoje]: ').strip()
+    if not data_inicio:
+        data_inicio = datetime.now()
+    else:
         try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
+            data_inicio = datetime.fromisoformat(data_inicio)
+        except:
+            print('Formato inválido, usando hoje.')
+            data_inicio = datetime.now()
+    doc = {'aluno_id': aluno.get('_id'), 'livro_id': livro.get('_id'), 'data_inicio': data_inicio, 'data_devolucao': None}
+    res = db['emprestimos'].insert_one(doc)
+    print('Empréstimo criado com _id=', res.inserted_id)
 
-            # 🔍 Verifica se o aluno existe
-            cursor.execute(
-                "SELECT COUNT(*) FROM aluno WHERE matricula = %s",
-                (emprestimo.get_aluno().get_matricula(),)
-            )
-            if cursor.fetchone()[0] == 0:
-                print(" Erro: matrícula não encontrada no banco de dados.")
-                return
+def escolher(db):
+    docs = listar(db)
+    if not docs:
+        return None
+    escolha = input('Escolha o número do registro: ').strip()
+    try:
+        idx = int(escolha)-1
+        if idx < 0 or idx >= len(docs):
+            print('Escolha inválida.')
+            return None
+        return docs[idx]
+    except:
+        print('Entrada inválida.')
+        return None
 
-            # 🔍 Verifica se o livro existe e está disponível
-            cursor.execute(
-                "SELECT disponivel FROM livro WHERE id_livro = %s",
-                (emprestimo.get_livro().get_id_livro(),)
-            )
-            result = cursor.fetchone()
-            if not result:
-                print(" Erro: livro não encontrado.")
-                return
-            elif result[0] == 0:
-                print(" O livro selecionado está indisponível para empréstimo.")
-                return
-
-            # 💾 Insere o empréstimo
-            sql = """
-                INSERT INTO emprestimo (
-                    matricula, id_livro, data_emprestimo,
-                    data_devolucao, atraso, multa, emprestado
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """
-            valores = (
-                emprestimo.get_aluno().get_matricula(),
-                emprestimo.get_livro().get_id_livro(),
-                emprestimo.get_data_emprestimo(),
-                emprestimo.get_data_devolucao(),
-                int(emprestimo.get_atraso()),
-                emprestimo.get_multa(),
-                int(emprestimo.get_emprestado())
-            )
-            cursor.execute(sql, valores)
-            conn.commit()
-            print(" Empréstimo registrado com sucesso!")
-
-            # 📚 Atualiza disponibilidade do livro
-            cursor.execute(
-                "UPDATE livro SET disponivel = 0 WHERE id_livro = %s",
-                (emprestimo.get_livro().get_id_livro(),)
-            )
-            conn.commit()
-            print("📘 Livro marcado como indisponível.")
-        except mysql.connector.Error as err:
-            print(f" Erro ao registrar empréstimo: {err}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    def finalizar_emprestimo(self, id_emprestimo):
-        """Finaliza um empréstimo e torna o livro disponível novamente."""
-        conn = None
-        cursor = None
+def atualizar(db):
+    print('\n--- Atualizar empréstimo (registrar devolução) ---')
+    doc = escolher(db)
+    if not doc:
+        return
+    print('Registro selecionado:', doc)
+    devol = input('Registrar data de devolução (YYYY-mm-dd) [hoje]: ').strip()
+    if not devol:
+        devol = datetime.now()
+    else:
         try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
+            devol = datetime.fromisoformat(devol)
+        except:
+            print('Formato inválido, usando hoje.')
+            devol = datetime.now()
+    db['emprestimos'].update_one({'_id': doc.get('_id')}, {'$set': {'data_devolucao': devol}})
+    print('Devolução registrada.')
 
-            # Recupera o ID do livro do empréstimo
-            cursor.execute(
-                "SELECT id_livro FROM emprestimo WHERE id_emprestimo = %s",
-                (id_emprestimo,)
-            )
-            result = cursor.fetchone()
-            if result:
-                id_livro = result[0]
-                cursor.execute(
-                    "UPDATE livro SET disponivel = 1 WHERE id_livro = %s",
-                    (id_livro,)
-                )
-                print("📖 Livro devolvido e marcado como disponível.")
+def remover(db):
+    print('\n--- Remover empréstimo ---')
+    doc = escolher(db)
+    if not doc:
+        return
+    confirma = input('Confirmar remoção deste empréstimo? (s/N): ').strip().lower()
+    if confirma != 's':
+        print('Cancelado.')
+        return
+    db['emprestimos'].delete_one({'_id': doc.get('_id')})
+    print('Empréstimo removido.')
 
-            # Atualiza status do empréstimo
-            cursor.execute(
-                "UPDATE emprestimo SET emprestado = 0 WHERE id_emprestimo = %s",
-                (id_emprestimo,)
-            )
-            conn.commit()
-            print(" Empréstimo finalizado com sucesso!")
-        except mysql.connector.Error as err:
-            print(f" Erro ao finalizar empréstimo: {err}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+if __name__ == '__main__':
+    db = get_db()
+    while True:
+        print('\nEmprestimos: 1-listar 2-inserir 3-atualizar 4-remover 0-sair')
+        op = input('Op: ').strip()
+        if op == '1': listar(db)
+        elif op == '2': inserir(db)
+        elif op == '3': atualizar(db)
+        elif op == '4': remover(db)
+        elif op == '0': break
+        else: print('inválido')
 
-    def listar_todos(self):
-        """Retorna uma lista com todos os empréstimos registrados."""
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM emprestimo")
-            result = cursor.fetchall()
-            print("📋 Lista de empréstimos carregada com sucesso.")
-            return result
-        except mysql.connector.Error as err:
-            print(f" Erro ao listar empréstimos: {err}")
-            return []
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    def existe(self, id_emprestimo):
-        """Verifica se um empréstimo existe no banco."""
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT COUNT(*) FROM emprestimo WHERE id_emprestimo = %s",
-                (id_emprestimo,)
-            )
-            qtd = cursor.fetchone()[0]
-            return qtd > 0
-        except mysql.connector.Error as err:
-            print(f" Erro ao verificar existência do empréstimo: {err}")
-            return False
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    def deletar(self, id_emprestimo=None):
-        """
-        Deleta um empréstimo do banco.
-        Pode ser chamado diretamente com ID (deletar(5))
-        ou de forma interativa (sem parâmetros).
-        """
-        conn = None
-        cursor = None
-        try:
-            if id_emprestimo is None:
-                id_emprestimo = input("Informe o ID do empréstimo a ser removido: ")
-
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-
-            cursor.execute(
-                "SELECT COUNT(*) FROM emprestimo WHERE id_emprestimo = %s",
-                (id_emprestimo,)
-            )
-            if cursor.fetchone()[0] == 0:
-                print(" Empréstimo não encontrado.")
-                return
-
-            confirm = input(f"Confirma exclusão do empréstimo {id_emprestimo}? [s/N]: ").strip().lower()
-            if confirm != "s":
-                print("Exclusão cancelada.")
-                return
-            cursor.execute("DELETE FROM emprestimo WHERE id_emprestimo = %s", (id_emprestimo,))
-            conn.commit()
-            print(f" Empréstimo {id_emprestimo} removido com sucesso!")
-        except mysql.connector.Error as err:
-            print(f" Erro ao remover empréstimo: {err}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
