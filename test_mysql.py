@@ -11,14 +11,14 @@ try:
     )
 
     if connection.is_connected():
-        print("✅ Conexão com MySQL estabelecida com sucesso!")
+        print(" Conexão com MySQL estabelecida com sucesso!")
         db_info = connection.get_server_info()
         print("Versão do servidor MySQL:", db_info)
 
 except Error as e:
-    print("❌ Erro ao conectar ao MySQL:", e)
+    print(" Erro ao conectar ao MySQL:", e)
 
 finally:
     if 'connection' in locals() and connection.is_connected():
         connection.close()
-        print("🔒 Conexão com MySQL fechada.")
+        print(" Conexão com MySQL fechada.")
