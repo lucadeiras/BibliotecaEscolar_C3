@@ -1,40 +1,71 @@
 
-# Main menu for BibliotecaEscolar C3
 from src.utils.splash_screen import show
-from pymongo import MongoClient
-import importlib
-import pkgutil
+from src.db.connection import get_db
 import sys
 
-def menu():
+def menu_principal():
     print('\nMenu principal:')
     print('1 - Relatorios')
-    print('2 - Inserir documentos')
-    print('3 - Remover documentos')
-    print('4 - Atualizar documentos')
+    print('2 - Livros (CRUD)')
+    print('3 - Alunos (CRUD)')
+    print('4 - Emprestimos (CRUD)')
     print('5 - Sair')
+
+def menu_crud(nome):
+    print(f'\n{nome} - Escolha ação:')
+    print('1 - Listar')
+    print('2 - Inserir')
+    print('3 - Atualizar')
+    print('4 - Remover')
+    print('0 - Voltar')
 
 def run():
     show()
-    client = MongoClient('mongodb://localhost:27017')
-    db = client['biblioteca']
+    db = get_db()
     while True:
-        menu()
+        menu_principal()
         op = input('Escolha uma opcao: ').strip()
         if op == '1':
             from src.reports import relatorios
             relatorios.main()
         elif op == '2':
-            print('Inserir documentos - use create_collections_and_data.py ou implemente insercao manual no projeto.')
+            from src.controllers import livro_controller as ctrl
+            while True:
+                menu_crud('Livros')
+                o = input('Op: ').strip()
+                if o == '1': ctrl.listar(db)
+                elif o == '2': ctrl.inserir(db)
+                elif o == '3': ctrl.atualizar(db)
+                elif o == '4': ctrl.remover(db)
+                elif o == '0': break
+                else: print('Opcao invalida')
         elif op == '3':
-            print('Remover documentos - ainda nao implementado via menu. Use o script ou Mongo shell.')
+            from src.controllers import aluno_controller as ctrl
+            while True:
+                menu_crud('Alunos')
+                o = input('Op: ').strip()
+                if o == '1': ctrl.listar(db)
+                elif o == '2': ctrl.inserir(db)
+                elif o == '3': ctrl.atualizar(db)
+                elif o == '4': ctrl.remover(db)
+                elif o == '0': break
+                else: print('Opcao invalida')
         elif op == '4':
-            print('Atualizar documentos - ainda nao implementado via menu. Use o script ou Mongo shell.')
+            from src.controllers import emprestimo_controller as ctrl
+            while True:
+                menu_crud('Emprestimos')
+                o = input('Op: ').strip()
+                if o == '1': ctrl.listar(db)
+                elif o == '2': ctrl.inserir(db)
+                elif o == '3': ctrl.atualizar(db)
+                elif o == '4': ctrl.remover(db)
+                elif o == '0': break
+                else: print('Opcao invalida')
         elif op == '5':
             print('Saindo...')
-            break
+            sys.exit(0)
         else:
-            print('Opcao invalida.')
+            print('Opcao invalida')
 
 if __name__ == '__main__':
     run()
