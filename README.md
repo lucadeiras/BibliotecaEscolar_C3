@@ -118,14 +118,9 @@ Para instalá-las:
 
 ---
 
-**Demonstração no YouTube:**  
-[Assista aqui](https://youtu.be/m6XD_HYXN8c)
-
 
 ## Desenvolvido por
-- **Lucas Rufino**  
 - **Lucas Pires**  
-- **Jeronymo Moreira**
 
 ### Disciplina
 **Banco de Dados – 2025/2**  
