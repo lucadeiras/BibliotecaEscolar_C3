@@ -1,220 +1,101 @@
-import mysql.connector
-from src.model.livro import Livro
-from src.conexion.mySQL_queries import mySQL_queries
+from src.db.connection import get_db
+from src.controllers.helpers import parse_id
 
+def listar(db):
+    coll = db['livros']
+    docs = list(coll.find({}))
+    if not docs:
+        print('Nenhum livro cadastrado.')
+        return []
+    print('\n--- Lista de livros ---')
+    for i, d in enumerate(docs, start=1):
+        print(f"{i}) _id={d.get('_id')} | {d.get('titulo')} - {d.get('autor')} ({d.get('ano')}) qtd:{d.get('quantidade')}")
+    return docs
 
-class ControllerLivro:
-    def __init__(self):
-        self.mysql = mySQL_queries()
+def inserir(db):
+    print('\n--- Inserir livro ---')
+    titulo = input('Título: ').strip()
+    autor = input('Autor: ').strip()
+    ano = input('Ano (opcional): ').strip() or None
+    qtd = input('Quantidade: ').strip() or '1'
+    try:
+        ano = int(ano) if ano else None
+    except:
+        ano = None
+    try:
+        qtd = int(qtd)
+    except:
+        qtd = 1
+    doc = {'titulo': titulo, 'autor': autor, 'ano': ano, 'quantidade': qtd}
+    coll = db['livros']
+    res = coll.insert_one(doc)
+    print('Livro inserido com _id =', res.inserted_id)
 
-    # ---------------- INSERIR LIVRO ----------------
-    def inserir(self, livro: Livro):
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-
-            sql = """
-                INSERT INTO livro (
-                    genero, titulo, autor, editora, ano_publicacao,
-                    localizacao, num_paginas, estoque, disponivel
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            valores = (
-                livro.get_genero(),
-                livro.get_titulo(),
-                livro.get_autor(),
-                livro.get_editora(),
-                livro.get_ano_publicacao(),
-                livro.get_localizacao(),
-                livro.get_num_paginas(),
-                livro.get_estoque(),
-                int(livro.get_disponivel())
-            )
-            cursor.execute(sql, valores)
-            conn.commit()
-            print(" Livro inserido com sucesso!")
-        except mysql.connector.Error as err:
-            print(f" Erro ao inserir livro: {err}")
-            if conn:
-                conn.rollback()
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    # ---------------- ATUALIZAR LIVRO (INTERATIVO) ----------------
-    def atualizar(self):
-        conn = None
-        cursor = None
-        try:
-            id_livro = input("Informe o ID do livro que deseja atualizar: ")
-
-            if not self.existe(id_livro):
-                print(" Livro não encontrado!")
-                return
-
-            conn = self.mysql.connect()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM livro WHERE id_livro = %s", (id_livro,))
-            livro_atual = cursor.fetchone()
-
-            print("\n===== DADOS ATUAIS DO LIVRO =====")
-            for campo, valor in livro_atual.items():
-                print(f"{campo}: {valor}")
-            print("=================================\n")
-
-            print("Deixe o campo em branco para manter o valor atual.\n")
-
-            genero = input(f"Novo gênero [{livro_atual['genero']}]: ") or livro_atual['genero']
-            titulo = input(f"Novo título [{livro_atual['titulo']}]: ") or livro_atual['titulo']
-            autor = input(f"Novo autor [{livro_atual['autor']}]: ") or livro_atual['autor']
-            editora = input(f"Nova editora [{livro_atual['editora']}]: ") or livro_atual['editora']
-            ano_publicacao = input(f"Novo ano de publicação [{livro_atual['ano_publicacao']}]: ") or livro_atual['ano_publicacao']
-            localizacao = input(f"Nova localização [{livro_atual['localizacao']}]: ") or livro_atual['localizacao']
-            num_paginas = input(f"Novo número de páginas [{livro_atual['num_paginas']}]: ") or livro_atual['num_paginas']
-            estoque = input(f"Novo estoque [{livro_atual['estoque']}]: ") or livro_atual['estoque']
-            disponivel_input = input(f"Disponível (S/N) [{ 'S' if livro_atual['disponivel'] else 'N' }]: ").strip().upper()
-
-            disponivel = livro_atual['disponivel']
-            if disponivel_input == "S":
-                disponivel = 1
-            elif disponivel_input == "N":
-                disponivel = 0
-
-            sql = """
-                UPDATE livro SET
-                    genero = %s,
-                    titulo = %s,
-                    autor = %s,
-                    editora = %s,
-                    ano_publicacao = %s,
-                    localizacao = %s,
-                    num_paginas = %s,
-                    estoque = %s,
-                    disponivel = %s
-                WHERE id_livro = %s
-            """
-            valores = (
-                genero, titulo, autor, editora, ano_publicacao,
-                localizacao, num_paginas, estoque, disponivel, id_livro
-            )
-
-            cursor.execute(sql, valores)
-            conn.commit()
-            print("\n Livro atualizado com sucesso!")
-
-        except mysql.connector.Error as err:
-            print(f" Erro ao atualizar livro: {err}")
-            if conn:
-                conn.rollback()
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    # ---------------- DELETAR LIVRO ----------------
-    def deletar(self, id_livro):
-        conn = None
-        cursor = None
-        try:
-            if not self.existe(id_livro):
-                print(" Livro não encontrado!")
-                return
-
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-
-            # 🔍 Verifica se o livro está em algum empréstimo
-            cursor.execute("SELECT COUNT(*) FROM emprestimo WHERE id_livro = %s", (id_livro,))
-            emprestimos = cursor.fetchone()[0]
-
-            if emprestimos > 0:
-                print(f" O livro com ID {id_livro} possui {emprestimos} empréstimo(s) registrado(s).")
-                print(" Exclusão não permitida para manter o histórico de empréstimos.")
-                return
-
-            cursor.execute("DELETE FROM livro WHERE id_livro = %s", (id_livro,))
-            conn.commit()
-
-            if cursor.rowcount > 0:
-                print(" Livro deletado com sucesso!")
-            else:
-                print(" Nenhum livro encontrado com esse ID.")
-        except mysql.connector.Error as err:
-            print(f" Erro ao deletar livro: {err}")
-            if conn:
-                conn.rollback()
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-    # ---------------- BUSCAR POR ID ----------------
-    def buscar_por_id(self, id_livro):
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM livro WHERE id_livro = %s", (id_livro,))
-            result = cursor.fetchone()
-            if result:
-                print("📘 Livro encontrado!")
-                return Livro(*result)
-            print(" Nenhum livro encontrado com esse ID.")
+def escolher(db):
+    docs = listar(db)
+    if not docs:
+        return None
+    escolha = input('Escolha o número do registro: ').strip()
+    try:
+        idx = int(escolha)-1
+        if idx < 0 or idx >= len(docs):
+            print('Escolha inválida.')
             return None
-        except mysql.connector.Error as err:
-            print(f" Erro ao buscar livro: {err}")
-            return None
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        return docs[idx]
+    except:
+        print('Entrada inválida.')
+        return None
 
-    # ---------------- ATUALIZAR DISPONIBILIDADE ----------------
-    def atualizar_disponibilidade(self, id_livro, disponivel):
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE livro SET disponivel = %s WHERE id_livro = %s",
-                (int(disponivel), id_livro)
-            )
-            conn.commit()
-            print(f" Disponibilidade do livro {id_livro} atualizada para {bool(disponivel)}.")
-        except mysql.connector.Error as err:
-            print(f" Erro ao atualizar disponibilidade do livro: {err}")
-            if conn:
-                conn.rollback()
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+def atualizar(db):
+    print('\n--- Atualizar livro ---')
+    doc = escolher(db)
+    if not doc:
+        return
+    print('Registro selecionado:', doc)
+    titulo = input(f'Título [{doc.get("titulo")}]: ').strip() or doc.get('titulo')
+    autor = input(f'Autor [{doc.get("autor")}]: ').strip() or doc.get('autor')
+    ano = input(f'Ano [{doc.get("ano")}]: ').strip() or doc.get('ano')
+    qtd = input(f'Quantidade [{doc.get("quantidade")}]: ').strip() or doc.get('quantidade')
+    try:
+        ano = int(ano) if ano not in (None, '') else None
+    except:
+        ano = doc.get('ano')
+    try:
+        qtd = int(qtd)
+    except:
+        qtd = doc.get('quantidade')
+    filtro = {'_id': doc.get('_id')}
+    novos = {'$set': {'titulo': titulo, 'autor': autor, 'ano': ano, 'quantidade': qtd}}
+    db['livros'].update_one(filtro, novos)
+    print('Atualizado.')
 
-    # ---------------- VERIFICAR EXISTÊNCIA ----------------
-    def existe(self, id_livro):
-        conn = None
-        cursor = None
-        try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM livro WHERE id_livro = %s", (id_livro,))
-            qtd = cursor.fetchone()[0]
-            return qtd > 0
-        except mysql.connector.Error as err:
-            print(f" Erro ao verificar existência do livro: {err}")
-            return False
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+def remover(db):
+    print('\n--- Remover livro ---')
+    doc = escolher(db)
+    if not doc:
+        return
+    # verificar referências em emprestimos
+    emprestimos = list(db['emprestimos'].find({'livro_id': doc.get('_id')}))
+    if emprestimos:
+        print('Este livro possui empréstimos associados (não pode ser removido sem confirmar).')
+        confirma = input('Deseja remover o livro e os empréstimos relacionados? (s/N): ').strip().lower()
+        if confirma != 's':
+            print('Operação cancelada.')
+            return
+        # remover emprestimos relacionados
+        db['emprestimos'].delete_many({'livro_id': doc.get('_id')})
+        print('Empréstimos relacionados removidos.')
+    db['livros'].delete_one({'_id': doc.get('_id')})
+    print('Livro removido.')
+
+if __name__ == '__main__':
+    db = get_db()
+    while True:
+        print('\nLivros: 1-listar 2-inserir 3-atualizar 4-remover 0-sair')
+        op = input('Op: ').strip()
+        if op == '1': listar(db)
+        elif op == '2': inserir(db)
+        elif op == '3': atualizar(db)
+        elif op == '4': remover(db)
+        elif op == '0': break
+        else: print('inválido')
