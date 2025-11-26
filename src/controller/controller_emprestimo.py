@@ -25,7 +25,7 @@ class ControllerEmprestimo:
                 (emprestimo.get_aluno().get_matricula(),)
             )
             if cursor.fetchone()[0] == 0:
-                print("❌ Erro: matrícula não encontrada no banco de dados.")
+                print(" Erro: matrícula não encontrada no banco de dados.")
                 return
 
             # 🔍 Verifica se o livro existe e está disponível
@@ -35,10 +35,10 @@ class ControllerEmprestimo:
             )
             result = cursor.fetchone()
             if not result:
-                print("❌ Erro: livro não encontrado.")
+                print(" Erro: livro não encontrado.")
                 return
             elif result[0] == 0:
-                print("⚠️ O livro selecionado está indisponível para empréstimo.")
+                print(" O livro selecionado está indisponível para empréstimo.")
                 return
 
             # 💾 Insere o empréstimo
@@ -59,7 +59,7 @@ class ControllerEmprestimo:
             )
             cursor.execute(sql, valores)
             conn.commit()
-            print("✅ Empréstimo registrado com sucesso!")
+            print(" Empréstimo registrado com sucesso!")
 
             # 📚 Atualiza disponibilidade do livro
             cursor.execute(
@@ -69,7 +69,7 @@ class ControllerEmprestimo:
             conn.commit()
             print("📘 Livro marcado como indisponível.")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao registrar empréstimo: {err}")
+            print(f" Erro ao registrar empréstimo: {err}")
         finally:
             if cursor:
                 cursor.close()
@@ -104,9 +104,9 @@ class ControllerEmprestimo:
                 (id_emprestimo,)
             )
             conn.commit()
-            print("✅ Empréstimo finalizado com sucesso!")
+            print(" Empréstimo finalizado com sucesso!")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao finalizar empréstimo: {err}")
+            print(f" Erro ao finalizar empréstimo: {err}")
         finally:
             if cursor:
                 cursor.close()
@@ -125,7 +125,7 @@ class ControllerEmprestimo:
             print("📋 Lista de empréstimos carregada com sucesso.")
             return result
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao listar empréstimos: {err}")
+            print(f" Erro ao listar empréstimos: {err}")
             return []
         finally:
             if cursor:
@@ -147,7 +147,7 @@ class ControllerEmprestimo:
             qtd = cursor.fetchone()[0]
             return qtd > 0
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao verificar existência do empréstimo: {err}")
+            print(f" Erro ao verificar existência do empréstimo: {err}")
             return False
         finally:
             if cursor:
@@ -175,7 +175,7 @@ class ControllerEmprestimo:
                 (id_emprestimo,)
             )
             if cursor.fetchone()[0] == 0:
-                print("⚠️ Empréstimo não encontrado.")
+                print(" Empréstimo não encontrado.")
                 return
 
             confirm = input(f"Confirma exclusão do empréstimo {id_emprestimo}? [s/N]: ").strip().lower()
@@ -184,9 +184,9 @@ class ControllerEmprestimo:
                 return
             cursor.execute("DELETE FROM emprestimo WHERE id_emprestimo = %s", (id_emprestimo,))
             conn.commit()
-            print(f"✅ Empréstimo {id_emprestimo} removido com sucesso!")
+            print(f" Empréstimo {id_emprestimo} removido com sucesso!")
         except mysql.connector.Error as err:
-            print(f"❌ Erro ao remover empréstimo: {err}")
+            print(f" Erro ao remover empréstimo: {err}")
         finally:
             if cursor:
                 cursor.close()
